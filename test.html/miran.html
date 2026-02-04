@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miran Name Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .status {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .status.waiting {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .status.listening {
+            background: #d4edda;
+            color: #155724;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status.detected {
+            background: #f8d7da;
+            color: #721c24;
+            animation: shake 0.5s;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+            margin: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #stopAlarmBtn {
+            animation: alarmPulse 0.5s infinite;
+            font-size: 1.2em;
+            padding: 20px 50px;
+        }
+
+        @keyframes alarmPulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(238, 90, 36, 0.7);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 20px 10px rgba(238, 90, 36, 0);
+            }
+        }
+
+        .transcript {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .transcript-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+            color: #333;
+        }
+
+        .transcript-item:last-child {
+            border-bottom: none;
+        }
+
+        .detected-word {
+            color: #721c24;
+            font-weight: bold;
+            background: #f8d7da;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            text-align: left;
+            font-size: 0.9em;
+            color: #1976D2;
+        }
+
+        .mic-icon {
+            font-size: 3em;
+            margin: 20px 0;
+        }
+
+        .mic-icon.active {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Miran Detector</h1>
+        <p class="subtitle">Voice-activated sound alert system</p>
+
+        <div class="mic-icon" id="micIcon">🎙️</div>
+
+        <div class="status waiting" id="status">
+            Click "Start Listening" to begin
+        </div>
+
+        <button id="startBtn" onclick="startListening()">Start Listening</button>
+        <button id="stopBtn" onclick="stopListening()" disabled>Stop Listening</button>
+        <button onclick="playLoudSound()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">🔊 Test Sound</button>
+        <button id="stopAlarmBtn" onclick="stopAlarm()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); display: none;">🛑 STOP ALARM</button>
+
+        <div class="transcript" id="transcript">
+            <div style="color: #999; font-style: italic;">Transcription will appear here...</div>
+        </div>
+
+        <div class="info">
+            ℹ️ <strong>How it works:</strong> This website listens for words that sound like "Miran" including: <strong>mir, mira, miran, milan, myran, miron, miren, mirror</strong> and more. When detected, it plays a <strong>continuous loud siren</strong> until you click "STOP ALARM".<br><br>
+            <strong>Testing:</strong> Click "Test Sound" to verify the alarm works. The siren will continue until you stop it. Then click "Start Listening" and say any of the trigger words to test detection.
+        </div>
+    </div>
+
+    <script>
+        let recognition;
+        let isListening = false;
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Initialize speech recognition
+        function initRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+                return null;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Show both interim and final results
+                const displayText = finalTranscript || interimTranscript;
+                
+                if (displayText.trim()) {
+                    addToTranscript(displayText, !finalTranscript);
+                    
+                    // Check if any variation of Miran was said (case-insensitive)
+                    const lowerText = displayText.toLowerCase();
+                    console.log('Checking text:', lowerText); // Debug log
+                    
+                    // Extended list of words that sound like Miran
+                    const triggerWords = [
+                        'miran', 'mir', 'mira', 'miران',
+                        'milan', 'myran', 'miran\'s', 'miron',
+                        'miraan', 'miren', 'myrin', 'meran',
+                        'mirror', 'mirra', 'miran', 'mirin'
+                    ];
+                    
+                    const detected = triggerWords.some(word => {
+                        // Check for the word as a standalone word or part of a word
+                        return lowerText.includes(word);
+                    });
+                    
+                    if (detected) {
+                        const matchedWord = triggerWords.find(word => lowerText.includes(word));
+                        triggerAlert(displayText, matchedWord);
+                    }
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error === 'no-speech') {
+                    // Ignore no-speech errors, they're common
+                    return;
+                }
+                if (event.error === 'aborted') {
+                    // Ignore aborted errors if we're still listening
+                    if (isListening) {
+                        return;
+                    }
+                }
+                if (event.error === 'not-allowed') {
+                    updateStatus('❌ Microphone access denied. Please allow microphone access.', 'waiting');
+                    stopListening();
+                    return;
+                }
+                // For other errors, just log them but keep listening if we should be
+                console.log('Speech recognition error (continuing):', event.error);
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    // Restart recognition if we're still supposed to be listening
+                    // Add a small delay to prevent rapid restart issues
+                    setTimeout(() => {
+                        if (isListening) {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.error('Error restarting recognition:', e);
+                            }
+                        }
+                    }, 100);
+                }
+            };
+
+            return recognition;
+        }
+
+        function startListening() {
+            if (!recognition) {
+                recognition = initRecognition();
+                if (!recognition) return;
+            }
+
+            isListening = true;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('micIcon').classList.add('active');
+            
+            updateStatus('🎧 Starting...', 'listening');
+            
+            // Add a small delay to prevent aborted errors
+            setTimeout(() => {
+                try {
+                    recognition.start();
+                    updateStatus('🎧 Listening for "Miran"...', 'listening');
+                } catch (e) {
+                    console.error('Error starting recognition:', e);
+                    if (e.name === 'InvalidStateError') {
+                        // Recognition is already started, just update status
+                        updateStatus('🎧 Listening for "Miran"...', 'listening');
+                    }
+                }
+            }, 100);
+        }
+
+        function stopListening() {
+            isListening = false;
+            if (recognition) {
+                recognition.stop();
+            }
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('micIcon').classList.remove('active');
+            
+            updateStatus('Stopped listening', 'waiting');
+        }
+
+        function updateStatus(message, className) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + className;
+        }
+
+        function addToTranscript(text, isInterim = false) {
+            const transcriptEl = document.getElementById('transcript');
+            
+            // Clear the placeholder on first entry
+            if (transcriptEl.querySelector('[style*="italic"]')) {
+                transcriptEl.innerHTML = '';
+            }
+
+            // If it's interim, update or create the interim item
+            if (isInterim) {
+                let interimItem = transcriptEl.querySelector('.interim-item');
+                if (!interimItem) {
+                    interimItem = document.createElement('div');
+                    interimItem.className = 'transcript-item interim-item';
+                    interimItem.style.opacity = '0.6';
+                    interimItem.style.fontStyle = 'italic';
+                    transcriptEl.insertBefore(interimItem, transcriptEl.firstChild);
+                }
+                const highlightedText = text.replace(/\b(miran|mir|mira|milan|myran|miron|miraan|miren|myrin|meran|mirror|mirra|mirin)\b/gi, '<span class="detected-word">$&</span>');
+                interimItem.innerHTML = '💭 ' + highlightedText;
+            } else {
+                // Remove any interim item
+                const interimItem = transcriptEl.querySelector('.interim-item');
+                if (interimItem) {
+                    interimItem.remove();
+                }
+                
+                // Add final transcript
+                const item = document.createElement('div');
+                item.className = 'transcript-item';
+                
+                // Highlight trigger words in the text
+                const highlightedText = text.replace(/\b(miran|mir|mira|milan|myran|miron|miraan|miren|myrin|meran|mirror|mirra|mirin)\b/gi, '<span class="detected-word">$&</span>');
+                item.innerHTML = '✓ ' + highlightedText;
+                
+                transcriptEl.insertBefore(item, transcriptEl.firstChild);
+                
+                // Keep only last 15 items
+                while (transcriptEl.children.length > 15) {
+                    transcriptEl.removeChild(transcriptEl.lastChild);
+                }
+            }
+        }
+
+        let alarmOscillator = null;
+        let alarmGain = null;
+        let isAlarmPlaying = false;
+
+        function playLoudSound() {
+            if (isAlarmPlaying) return; // Already playing
+            
+            isAlarmPlaying = true;
+            
+            // Create continuous oscillating alarm sound
+            alarmOscillator = audioContext.createOscillator();
+            alarmGain = audioContext.createGain();
+            
+            alarmOscillator.connect(alarmGain);
+            alarmGain.connect(audioContext.destination);
+            
+            // Set initial frequency
+            alarmOscillator.frequency.value = 800;
+            
+            // Set volume (0 to 1) - 0.7 is very loud
+            alarmGain.gain.setValueAtTime(0.7, audioContext.currentTime);
+            
+            // Start the alarm
+            alarmOscillator.start(audioContext.currentTime);
+            
+            // Oscillate the frequency to create a siren effect
+            let time = audioContext.currentTime;
+            const oscillationSpeed = 0.3; // seconds per oscillation
+            
+            // Create repeating pattern
+            for (let i = 0; i < 100; i++) { // 100 cycles should be more than enough
+                alarmOscillator.frequency.setValueAtTime(800, time);
+                alarmOscillator.frequency.linearRampToValueAtTime(1200, time + oscillationSpeed / 2);
+                alarmOscillator.frequency.linearRampToValueAtTime(800, time + oscillationSpeed);
+                time += oscillationSpeed;
+            }
+            
+            // Show stop alarm button
+            document.getElementById('stopAlarmBtn').style.display = 'inline-block';
+        }
+
+        function stopAlarm() {
+            if (!isAlarmPlaying) return;
+            
+            isAlarmPlaying = false;
+            
+            if (alarmOscillator) {
+                try {
+                    alarmOscillator.stop();
+                } catch (e) {
+                    console.log('Oscillator already stopped');
+                }
+                alarmOscillator = null;
+                alarmGain = null;
+            }
+            
+            // Hide stop alarm button
+            document.getElementById('stopAlarmBtn').style.display = 'none';
+            
+            // Reset status if still listening
+            if (isListening) {
+                updateStatus('🎧 Listening for "Miran"...', 'listening');
+            }
+        }
+
+        function triggerAlert(transcript, matchedWord) {
+            updateStatus(`🚨 DETECTED: "${matchedWord.toUpperCase()}" 🚨`, 'detected');
+            playLoudSound();
+        }
+    </script>
+</body>
+</html>
